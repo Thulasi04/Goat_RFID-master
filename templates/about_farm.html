@@ -1,0 +1,554 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Our Farm - Feed Calculator</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e8f1e8;
+      background-image: url("{{ url_for('static', filename='images/background.jpg') }}");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .header {
+      background: rgba(0, 128, 0, 0.9);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 2.3em;
+    }
+
+    .container {
+      width: 92%;
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    h2 {
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
+
+    .radio-buttons,
+    .period-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      cursor: pointer;
+    }
+
+    .table-container {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .table-container.active {
+      display: block;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #35424a;
+      color: white;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f7f9fa;
+    }
+
+    .no-of-goats {
+      width: 90px;
+      padding: 6px;
+    }
+
+    .chart-container {
+      max-width: 450px;
+      margin: 20px auto;
+    }
+
+    .notice {
+      background: #eef6ff;
+      border: 1px solid #b7d7f7;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 15px 0;
+    }
+
+    .footnote {
+      color: #555;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        width: 96%;
+        padding: 12px;
+      }
+
+      .radio-buttons,
+      .period-buttons {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <h1>About Our Farm</h1>
+    <p>Statistics on Forage, Hay, and Pellet Usage</p>
+  </header>
+
+  <main class="container">
+    <h2>Select Goat Type</h2>
+
+    <div class="radio-buttons">
+      <label>
+        <input type="radio" name="goat-type" value="Grower" checked>
+        Grower
+      </label>
+
+      <label>
+        <input type="radio" name="goat-type" value="Lactating">
+        Lactating
+      </label>
+
+      <label>
+        <input type="radio" name="goat-type" value="Breeding">
+        Breeding
+      </label>
+
+      <label>
+        <input type="radio" name="goat-type" value="Maintain">
+        Maintain
+      </label>
+    </div>
+
+    <h2>Select Feed Period</h2>
+
+    <div class="period-buttons">
+      <label>
+        <input type="radio" name="feed-period" value="per_day" checked>
+        Per Day
+      </label>
+
+      <label>
+        <input type="radio" name="feed-period" value="per_week">
+        Per Week
+      </label>
+
+      <label>
+        <input type="radio" name="feed-period" value="per_month">
+        Per Month (30 days)
+      </label>
+    </div>
+
+    <div class="notice" id="status" role="status">
+      Enter the number of goats in each weight range.
+    </div>
+
+    <div class="table-container active" data-period="per_day">
+      <h3>Per Day</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Weight (kg)</th>
+              <th>Number of Goats</th>
+              <th>Forage (kg/day)</th>
+              <th>Hay (kg/day)</th>
+              <th>Pellet (kg/day)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">Total</th>
+              <th class="total-forage">0.00</th>
+              <th class="total-hay">0.00</th>
+              <th class="total-pellet">0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="chart-container">
+        <canvas id="per_dayChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-container" data-period="per_week">
+      <h3>Per Week</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Weight (kg)</th>
+              <th>Number of Goats</th>
+              <th>Forage (kg/week)</th>
+              <th>Hay (kg/week)</th>
+              <th>Pellet (kg/week)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">Total</th>
+              <th class="total-forage">0.00</th>
+              <th class="total-hay">0.00</th>
+              <th class="total-pellet">0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="chart-container">
+        <canvas id="per_weekChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-container" data-period="per_month">
+      <h3>Per Month (30 days)</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Weight (kg)</th>
+              <th>Number of Goats</th>
+              <th>Forage (kg/month)</th>
+              <th>Hay (kg/month)</th>
+              <th>Pellet (kg/month)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">Total</th>
+              <th class="total-forage">0.00</th>
+              <th class="total-hay">0.00</th>
+              <th class="total-pellet">0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="chart-container">
+        <canvas id="per_monthChart"></canvas>
+      </div>
+    </div>
+
+    <p class="footnote">
+      Estimates use dry-matter intake rates based on goat type.
+      The feed mix is calculated using 70% forage, 10% hay, and
+      20% pellets, with the original forage conversion factor of 5.3.
+      Actual feed needs depend on animal health, age, production,
+      feed quality, and veterinary or livestock-nutrition advice.
+    </p>
+  </main>
+
+  <script>
+    "use strict";
+
+    const INTAKE_RATES = {
+      Grower: 0.04,
+      Maintain: 0.03,
+      Breeding: 0.036,
+      Lactating: 0.043
+    };
+
+    const PERIOD_FACTORS = {
+      per_day: 1,
+      per_week: 7,
+      per_month: 30
+    };
+
+    const WEIGHT_RANGES = [
+      "0-10", "10-20", "20-30",
+      "30-40", "40-50", "50-60"
+    ];
+
+    const charts = {};
+
+    function getGoatType() {
+      return document.querySelector(
+        'input[name="goat-type"]:checked'
+      )?.value || "Grower";
+    }
+
+    function calculateFeed(weight, goatCount, period, type) {
+      const count = Number(goatCount);
+      const rate = INTAKE_RATES[type];
+      const factor = PERIOD_FACTORS[period];
+
+      if (!Number.isFinite(count) ||
+          count < 0 ||
+          !Number.isInteger(count)) {
+        throw new Error("Enter a non-negative whole number of goats.");
+      }
+
+      if (rate === undefined || factor === undefined) {
+        throw new Error("Invalid goat type or feed period.");
+      }
+
+      const dryMatter = weight * rate * count * factor;
+
+      return {
+        forage: dryMatter * 0.70 * 5.3,
+        hay: dryMatter * 0.10,
+        pellet: dryMatter * 0.20
+      };
+    }
+
+    function buildTables() {
+      document.querySelectorAll(".table-container").forEach(container => {
+        const period = container.dataset.period;
+        const tbody = container.querySelector("tbody");
+        tbody.replaceChildren();
+
+        WEIGHT_RANGES.forEach(range => {
+          const row = document.createElement("tr");
+
+          const weightCell = document.createElement("td");
+          weightCell.textContent = range;
+          row.appendChild(weightCell);
+
+          const inputCell = document.createElement("td");
+          const input = document.createElement("input");
+
+          input.type = "number";
+          input.className = "no-of-goats";
+          input.min = "0";
+          input.step = "1";
+          input.value = "0";
+          input.dataset.weight = range;
+          input.dataset.period = period;
+          input.setAttribute(
+            "aria-label",
+            `Number of goats in weight range ${range} kg`
+          );
+
+          inputCell.appendChild(input);
+          row.appendChild(inputCell);
+
+          ["forage", "hay", "pellet"].forEach(type => {
+            const cell = document.createElement("td");
+            cell.className = type;
+            cell.textContent = "0.00";
+            row.appendChild(cell);
+          });
+
+          tbody.appendChild(row);
+        });
+      });
+    }
+
+    function syncInputs(source) {
+      const range = source.dataset.weight;
+
+      document.querySelectorAll(
+        `.no-of-goats[data-weight="${range}"]`
+      ).forEach(input => {
+        if (input !== source) {
+          input.value = source.value;
+        }
+      });
+    }
+
+    function updateChart(period, values) {
+      if (typeof Chart === "undefined") return;
+
+      const canvas = document.getElementById(`${period}Chart`);
+      if (!canvas) return;
+
+      if (charts[period]) {
+        charts[period].destroy();
+      }
+
+      charts[period] = new Chart(canvas.getContext("2d"), {
+        type: "pie",
+        data: {
+          labels: ["Forage", "Hay", "Pellet"],
+          datasets: [{
+            data: [
+              values.forage,
+              values.hay,
+              values.pellet
+            ],
+            backgroundColor: [
+              "#4CAF50",
+              "#FFC107",
+              "#FF5722"
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  return `${context.label}: ${
+                    Number(context.raw).toFixed(2)
+                  } kg`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateCalculations() {
+      const type = getGoatType();
+
+      const totals = {
+        per_day: { forage: 0, hay: 0, pellet: 0 },
+        per_week: { forage: 0, hay: 0, pellet: 0 },
+        per_month: { forage: 0, hay: 0, pellet: 0 }
+      };
+
+      let invalidInput = false;
+
+      document.querySelectorAll(".table-container tbody tr")
+        .forEach(row => {
+          const input = row.querySelector(".no-of-goats");
+          const rawCount = input.value;
+          const count = Number(rawCount);
+          const period = input.dataset.period;
+
+          const [minimum, maximum] =
+            input.dataset.weight.split("-").map(Number);
+
+          const averageWeight = (minimum + maximum) / 2;
+
+          if (rawCount.trim() === "" ||
+              !Number.isFinite(count) ||
+              count < 0 ||
+              !Number.isInteger(count)) {
+            invalidInput = true;
+
+            ["forage", "hay", "pellet"].forEach(feed => {
+              row.querySelector(`.${feed}`).textContent = "—";
+            });
+            return;
+          }
+
+          const result = calculateFeed(
+            averageWeight,
+            count,
+            period,
+            type
+          );
+
+          Object.entries(result).forEach(([feed, amount]) => {
+            row.querySelector(`.${feed}`).textContent =
+              amount.toFixed(2);
+
+            totals[period][feed] += amount;
+          });
+        });
+
+      Object.entries(totals).forEach(([period, values]) => {
+        const container = document.querySelector(
+          `.table-container[data-period="${period}"]`
+        );
+
+        container.querySelector(".total-forage").textContent =
+          values.forage.toFixed(2);
+
+        container.querySelector(".total-hay").textContent =
+          values.hay.toFixed(2);
+
+        container.querySelector(".total-pellet").textContent =
+          values.pellet.toFixed(2);
+
+        updateChart(period, values);
+      });
+
+      document.getElementById("status").textContent = invalidInput
+        ? "Enter a non-negative whole number in every goat-count field."
+        : `Feed estimates updated for ${type.toLowerCase()} goats.`;
+    }
+
+    function updateVisiblePeriod() {
+      const selected = document.querySelector(
+        'input[name="feed-period"]:checked'
+      )?.value || "per_day";
+
+      document.querySelectorAll(".table-container").forEach(container => {
+        container.classList.toggle(
+          "active",
+          container.dataset.period === selected
+        );
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      buildTables();
+      updateVisiblePeriod();
+      updateCalculations();
+
+      document.querySelectorAll('input[name="goat-type"]')
+        .forEach(radio => {
+          radio.addEventListener("change", updateCalculations);
+        });
+
+      document.querySelectorAll('input[name="feed-period"]')
+        .forEach(radio => {
+          radio.addEventListener("change", updateVisiblePeriod);
+        });
+
+      document.addEventListener("input", event => {
+        if (!event.target.matches(".no-of-goats")) return;
+
+        syncInputs(event.target);
+        updateCalculations();
+      });
+    });
+  </script>
+</body>
+</html>
